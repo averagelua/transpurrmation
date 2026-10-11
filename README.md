@@ -4,7 +4,7 @@ A networked multiplayer game about collecting fish, written using Lua with the L
 
 # Resources
 
-Tiled Map Editor \\
-sock.lua \\
-FlexLove \\
-STI (Simple-Titled-Implementation) \\
+Tiled Map Editor \
+sock.lua \
+FlexLove \
+STI (Simple-Titled-Implementation)
