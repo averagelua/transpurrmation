@@ -6,9 +6,13 @@
     "Lua.workspace.library": [
         "${3rd}/love2d/library"
     ],
+    "Lua.diagnostics.disable": [
+        "duplicate-set-field"
+    ],
     "Lua.workspace.checkThirdParty": false,
     "[lua]": {
         "editor.defaultFormatter": "JohnnyMorganz.stylua",
         "editor.formatOnSave": true
-    }
+    },
+    "stylua.targetReleaseVersion": "latest"
 }
