@@ -1,20 +1,26 @@
 local FlexLove = require("libs.FlexLove")
-local ScreenManager = require("client.ScreenManager")
+local ScreenController = require("client.controllers.ScreenController")
+local GameController = require("client.controllers.GameController")
 
 function love.load()
 	FlexLove.init()
 	love.keyboard.setKeyRepeat(true) -- needed for text editing (arrows, backspace, etc.)
 
-	ScreenManager.init()
-	ScreenManager.setScreen("MainMenu")
+	ScreenController.init()
+	ScreenController.setScreen("MainMenu")
 end
 
 function love.update(dt)
 	FlexLove.update(dt)
+	GameController.update()
 end
 
 function love.draw()
 	FlexLove.draw()
+end
+
+function love.quit()
+	GameController.disconnect()
 end
 
 -- Wire these hooks to enable responsive layout, text input, scrolling,
