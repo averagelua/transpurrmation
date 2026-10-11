@@ -1,16 +1,32 @@
 {
     "configurations": [
         {
+            "name": "debug-client",
             "type": "lua-local",
             "request": "launch",
-            "name": "Debug LOVE",
             "program": {
                 "command": "love"
             },
             "args": [
-                "${workspaceFolder}/client",
-                "vsc_debug"
-            ],
+                "${workspaceFolder}/client"
+            ]
+        },
+        {
+            "name": "debug-server",
+            "type": "lua-local",
+            "request": "launch",
+            "program": {
+                "command": "love"
+            },
+            "args": [
+                "${workspaceFolder}/server"
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug both Client & Server",
+            "configurations": ["debug-client", "debug-server"]
         }
     ]
 }
