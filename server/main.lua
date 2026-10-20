@@ -64,8 +64,12 @@ Begin the gameloop cycle again
 ]]
 
 local sock = require("libs.sock")
+local sti = require("libs.sti.init")
 
+local MAPS_DIRECTORY = "maps"
 local ROUND_LENGTH = 120 -- 2 minutes
+local SPAWN_ENTITY_ID = 45
+local GOAL_ENTITY_ID = 37
 
 local RoundTime = 0
 local LastReplicatedRoundTime = nil
@@ -107,10 +111,18 @@ function love.update(deltaTime)
 			-- TODO: End the round
 		end
 	else
-		if #ClientCharacterNames > 0 then
+		if #ClientCharacterNames > 0 or not RoundIsOngoing then
 			RoundIsOngoing = true
 			RoundTime = ROUND_LENGTH
 			-- TODO: Begin round
+			-- Select random map
+			local AvailableMaps = love.filesystem.getDirectoryItems(MAPS_DIRECTORY)
+			print(AvailableMaps, table.concat(AvailableMaps, ", "))
+			local SelectedMap = AvailableMaps[math.random(1, #AvailableMaps)]
+
+			-- Find start and goal locations
+			local Map = sti(MAPS_DIRECTORY .. "/" .. SelectedMap)
+			print(Map.layers.items)
 		end
 	end
 	Server:update()
