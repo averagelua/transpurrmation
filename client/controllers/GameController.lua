@@ -1,7 +1,7 @@
-local sock = require("libs.sock")
-local ScreenController = require("client.controllers.ScreenController")
-local CharacterController = require("client.controllers.CharacterController")
-local WorldController = require("client.controllers.WorldController")
+local sock = require("shared.libs.sock")
+local ScreenController = require("controllers.ScreenController")
+local CharacterController = require("controllers.CharacterController")
+local WorldController = require("controllers.WorldController")
 
 local GameController = {}
 

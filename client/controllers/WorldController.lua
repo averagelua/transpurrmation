@@ -1,5 +1,5 @@
-local sti = require("libs.sti.init")
-local CharacterController = require("client.controllers.CharacterController")
+local sti = require("shared.libs.sti.init")
+local CharacterController = require("controllers.CharacterController")
 
 local WorldController = {}
 

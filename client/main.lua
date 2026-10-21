@@ -1,6 +1,6 @@
 local FlexLove = require("libs.FlexLove")
-local ScreenController = require("client.controllers.ScreenController")
-local GameController = require("client.controllers.GameController")
+local ScreenController = require("controllers.ScreenController")
+local GameController = require("controllers.GameController")
 
 function love.load()
 	FlexLove.init()
