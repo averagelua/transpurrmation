@@ -38,6 +38,8 @@ When a player disconnects or dies
 - Remove them from the characters
 - If the current characters (alive) are 0, end the round (go to round end proceedure)
 
+-- TODO:
+
 When receiving a shaman command to place an object
 - Check that the client actually owns the shaman
 - register the placed object in a list on the server
@@ -52,6 +54,14 @@ When a player reports having touched the home
 - Destroy their character
 - Send a chat message announcing that '[their-selected-username] just collected the fish!' with a special server color
 
+Types of Shaman objects:
+Plank (Anchored)
+Box (Light)
+Anvil (Heavy)
+Balloon (Floats)
+
+---
+
 When receiving a packet to send a chat message
 - Perform filtering on the message content
 - Forward the name of the client and the message content to the other players to be visually displayed
@@ -63,24 +73,99 @@ Begin the gameloop cycle again
 
 ]]
 
-local sock = require("libs.sock")
-local sti = require("libs.sti.init")
+local sock = require("shared.libs.sock")
+local tableutil = require("shared.libs.tableutil")
 
 local MAPS_DIRECTORY = "maps"
 local ROUND_LENGTH = 120 -- 2 minutes
-local SPAWN_ENTITY_ID = 45
-local GOAL_ENTITY_ID = 37
 
 local RoundTime = 0
 local LastReplicatedRoundTime = nil
 local RoundIsOngoing = false
 local CurrentMapData = nil
+local CurrentSpawnLocation = nil
+local CurrentGoalLocation = nil
 local ShamanObjects = {}
 local ClientCharacterNames = {}
 local ClientCharacterData = {}
 
--- Informs Client to create CurrentMap locally
-local function SendMaptoClient(Client) end
+-- Informs Client to create CurrentMapData locally
+local function SendMaptoClient(Client)
+	Client:send("loadMap", CurrentMapData)
+end
+
+local function DestroyCharacter(Client)
+	if ClientCharacterData[Client] then
+		Server:sendToAllBut(Client, "destroyCharacter", ClientCharacterData[Client].id)
+		ClientCharacterData[Client] = nil
+	end
+	ClientCharacterNames[Client] = nil
+end
+
+local function EndRound()
+	-- TODO: End the round
+	Server:sendToAll("roundEnd")
+
+	RoundIsOngoing = false
+
+	RoundTime = 0
+	LastReplicatedRoundTime = nil
+
+	CurrentMapData = nil
+	CurrentSpawnLocation = nil
+	CurrentGoalLocation = nil
+
+	-- TODO: Replace with appropriate cleaning mechanism
+	for _, Object in ShamanObjects do
+		Object:Destroy()
+	end
+	ShamanObjects = {}
+end
+
+local function UpdatePosition(Client, Position)
+	if
+		ClientCharacterData[Client] == nil
+		or type(Position) ~= "table"
+		or type(Position.x) ~= "number"
+		or type(Position.y) ~= "number"
+	then
+		return
+	end
+
+	-- TODO: Add check here for when the character falls out of bounds and destroy their character
+
+	local NewPosition = { x = Position.x, y = Position.y }
+	ClientCharacterData[Client].position = NewPosition
+	Server:sendToAllBut(Client, "updatePosition", {
+		id = ClientCharacterData[Client].id,
+		position = NewPosition,
+	})
+end
+
+local function SelectUsername(Client, Username)
+	if ClientCharacterNames[Client] ~= nil or type(Username) ~= "string" then
+		return
+	end
+	ClientCharacterNames[Client] = Username
+end
+
+local function SendMessage(Client, Message)
+	if type(Message) ~= "string" then
+		return
+	end
+
+	local Username = ClientCharacterNames[Client]
+	if Username == nil then
+		return
+	end
+
+	-- TODO: filter 'Message' content
+
+	Server:sendToAll("createMessage", {
+		username = Username,
+		content = Message,
+	})
+end
 
 function love.load()
 	Server = sock.newServer("*", 22122)
@@ -90,11 +175,84 @@ function love.load()
 		if CurrentMapData then
 			SendMaptoClient(client)
 		end
+		for _, CharacterData in ClientCharacterData do
+			client:send("createCharacter", CharacterData)
+		end
 	end)
 
 	Server:on("disconnect", function(data, client)
 		print(client, "disconnected")
+		DestroyCharacter(client)
 	end)
+
+	Server:on("updatePosition", function(data, client)
+		UpdatePosition(client, data)
+	end)
+
+	Server:on("selectUsername", function(data, client)
+		SelectUsername(client, data)
+	end)
+
+	Server:on("sendMessage", function(data, client)
+		SendMessage(client, data)
+	end)
+end
+
+local function StartRound()
+	-- TODO: Begin round
+	-- Select random map
+	local AvailableMaps = love.filesystem.getDirectoryItems(MAPS_DIRECTORY)
+	local SelectedMap = AvailableMaps[math.random(1, #AvailableMaps)]:gsub(".lua", "")
+
+	-- Find start and goal locations
+	local MapData = require(MAPS_DIRECTORY .. "/" .. SelectedMap)
+
+	for _, Layer in ipairs(MapData.layers) do
+		if Layer.type == "objectgroup" and Layer.name == "items" then
+			for _, Object in Layer.objects do
+				if Object.properties["spawn"] then
+					CurrentSpawnLocation = { x = Object.x, y = Object.y }
+				elseif Object.properties["goal"] then
+					CurrentGoalLocation = { x = Object.x, y = Object.y }
+				end
+			end
+		end
+	end
+
+	if not CurrentSpawnLocation or not CurrentGoalLocation then
+		print(("Map %s doesn't have both spawn and goal objects."):format(SelectedMap))
+
+		CurrentSpawnLocation = nil
+		CurrentGoalLocation = nil
+
+		return
+	end
+
+	-- Inform clients to load map
+	Server:sendToAll("loadMap", MapData)
+
+	-- Select shaman and load characters
+	local CharacterId = 0 -- unique character identifier
+	local SelectedShaman = tableutil.RandomKey(ClientCharacterNames)
+
+	for Client, Username in ClientCharacterNames do
+		local NewCharacterData = {
+			id = CharacterId,
+			name = Username,
+			isShaman = Client == SelectedShaman,
+			hasFish = false,
+			position = CurrentSpawnLocation,
+		}
+		ClientCharacterData[Client] = NewCharacterData
+		CharacterId = CharacterId + 1
+
+		Client:send("createSelf", NewCharacterData)
+		Server:sendToAllBut(Client, "createCharacter", NewCharacterData)
+	end
+
+	CurrentMapData = MapData
+	RoundIsOngoing = true
+	RoundTime = ROUND_LENGTH
 end
 
 function love.update(deltaTime)
@@ -105,24 +263,16 @@ function love.update(deltaTime)
 		if RoundTimeCeil ~= LastReplicatedRoundTime then
 			-- TODO: Replicate RoundTimeCeil
 			LastReplicatedRoundTime = RoundTimeCeil
+			Server:sendToAll("roundTimer", LastReplicatedRoundTime)
 		end
 
-		if RoundTimeCeil <= 0 then
-			-- TODO: End the round
+		-- If time runs out or all players die, end the round.
+		if RoundTimeCeil <= 0 or next(ClientCharacterData) == nil then
+			EndRound()
 		end
 	else
-		if #ClientCharacterNames > 0 or not RoundIsOngoing then
-			RoundIsOngoing = true
-			RoundTime = ROUND_LENGTH
-			-- TODO: Begin round
-			-- Select random map
-			local AvailableMaps = love.filesystem.getDirectoryItems(MAPS_DIRECTORY)
-			print(AvailableMaps, table.concat(AvailableMaps, ", "))
-			local SelectedMap = AvailableMaps[math.random(1, #AvailableMaps)]
-
-			-- Find start and goal locations
-			local Map = sti(MAPS_DIRECTORY .. "/" .. SelectedMap)
-			print(Map.layers.items)
+		if #ClientCharacterNames > 0 or not RoundIsOngoing then -- debugging condition
+			StartRound()
 		end
 	end
 	Server:update()
