@@ -6,6 +6,7 @@ roundTimer (number) -> Set the current round time display to this number
 updatePosition ({id = CharacterId, position = (x,y)}) -> Set the position of character with id to position
 destroyCharacter (id) -> Destroy the character instance for the character of id
 roundEnded () -> Clean up all round related game objects
+createMessage (username, message) -> Create a message for the username in the chat
 
 Client -> Server:
 selectUsername (string) -> Informs the server of your selected username
