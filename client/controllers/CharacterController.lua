@@ -1,7 +1,12 @@
 local CharacterController = {}
+CharacterController.__index = CharacterController
 
-function CharacterController.initializeCharacter(x, y) end
+function CharacterController.new()
+	local self = setmetatable({}, CharacterController)
 
-function CharacterController.destroyCharacter() end
+	return self
+end
+
+function CharacterController:Destroy() end
 
 return CharacterController
