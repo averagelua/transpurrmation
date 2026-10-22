@@ -1,10 +1,12 @@
 local FlexLove = require("libs.FlexLove")
 local ScreenController = require("controllers.ScreenController")
 local GameController = require("controllers.GameController")
+local WorldController = require("controllers.WorldController")
 
 function love.load()
 	FlexLove.init()
 	love.keyboard.setKeyRepeat(true) -- needed for text editing (arrows, backspace, etc.)
+	love.window.setMode(960, 640)
 
 	ScreenController.init()
 	ScreenController.setScreen("MainMenu")
@@ -12,11 +14,13 @@ end
 
 function love.update(dt)
 	FlexLove.update(dt)
-	GameController.update()
+	GameController.update(dt)
+	WorldController.update(dt)
 end
 
 function love.draw()
 	FlexLove.draw()
+	WorldController.draw()
 end
 
 function love.quit()
