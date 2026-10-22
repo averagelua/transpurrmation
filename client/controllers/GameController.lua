@@ -8,7 +8,7 @@ local GameController = {}
 function GameController.selectName(Name)
 	print("selectName: " .. Name)
 
-	Client:send("selectName", Name)
+	Client:send("selectUsername", Name)
 
 	ScreenController.hideScreen()
 end
@@ -25,12 +25,28 @@ function GameController.start()
 		WorldController.loadMap(data)
 	end)
 
+	Client:on("createSelf", function(CharacterData)
+		WorldController.addCharacter(CharacterData, true)
+	end)
+
+	Client:on("createCharacter", function(CharacterData)
+		WorldController.addCharacter(CharacterData)
+	end)
+
+	Client:on("roundTimer", function(RoundTime) end)
+
+	Client:on("updatePosition", function(CharacterId, Position) end)
+
+	Client:on("destroyCharacter", function(CharacterId) end)
+
+	Client:on("roundEnded", function() end)
+
 	Client:connect()
 
 	ScreenController.setScreen("SelectName")
 end
 
-function GameController.update()
+function GameController.update(dt)
 	if Client then
 		Client:update()
 	end
