@@ -1,4 +1,4 @@
-local GameController = require("client.controllers.GameController")
+local GameController = require("controllers.GameController")
 local FlexLove = require("libs.FlexLove")
 local Color = FlexLove.Color
 
