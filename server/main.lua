@@ -116,9 +116,9 @@ local function EndRound()
 	CurrentGoalLocation = nil
 
 	-- TODO: Replace with appropriate cleaning mechanism
-	for _, Object in ShamanObjects do
-		Object:Destroy()
-	end
+	-- for _, Object in pairs(ShamanObjects) do
+	-- 	Object:Destroy()
+	-- end
 	ShamanObjects = {}
 end
 
@@ -175,7 +175,7 @@ function love.load()
 		if CurrentMapData then
 			SendMaptoClient(client)
 		end
-		for _, CharacterData in ClientCharacterData do
+		for _, CharacterData in pairs(ClientCharacterData) do
 			client:send("createCharacter", CharacterData)
 		end
 	end)
@@ -209,7 +209,7 @@ local function StartRound()
 
 	for _, Layer in ipairs(MapData.layers) do
 		if Layer.type == "objectgroup" and Layer.name == "items" then
-			for _, Object in Layer.objects do
+			for _, Object in ipairs(Layer.objects) do
 				if Object.properties["spawn"] then
 					CurrentSpawnLocation = { x = Object.x, y = Object.y }
 				elseif Object.properties["goal"] then
@@ -235,7 +235,7 @@ local function StartRound()
 	local CharacterId = 0 -- unique character identifier
 	local SelectedShaman = tableutil.RandomKey(ClientCharacterNames)
 
-	for Client, Username in ClientCharacterNames do
+	for Client, Username in pairs(ClientCharacterNames) do
 		local NewCharacterData = {
 			id = CharacterId,
 			name = Username,
@@ -271,7 +271,7 @@ function love.update(deltaTime)
 			EndRound()
 		end
 	else
-		if #ClientCharacterNames > 0 or not RoundIsOngoing then -- debugging condition
+		if next(ClientCharacterNames) ~= nil then
 			StartRound()
 		end
 	end
