@@ -133,6 +133,8 @@ local function UpdatePosition(Client, Position)
 	end
 
 	-- TODO: Add check here for when the character falls out of bounds and destroy their character
+	-- TODO: Add check here for when the character gets near the goal to grant them fish
+	-- TODO: Add check here for when the character gets near the spawn to complete the level
 
 	local NewPosition = { x = Position.x, y = Position.y }
 	ClientCharacterData[Client].position = NewPosition
@@ -211,7 +213,7 @@ local function StartRound()
 		if Layer.type == "objectgroup" and Layer.name == "items" then
 			for _, Object in ipairs(Layer.objects) do
 				if Object.properties["spawn"] then
-					CurrentSpawnLocation = { x = Object.x, y = Object.y }
+					CurrentSpawnLocation = { x = Object.x + Object.width / 2, y = Object.y - Object.height / 2 }
 				elseif Object.properties["goal"] then
 					CurrentGoalLocation = { x = Object.x, y = Object.y }
 				end
