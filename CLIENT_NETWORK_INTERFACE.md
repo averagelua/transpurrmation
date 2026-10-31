@@ -2,9 +2,10 @@ Server -> Client:
 loadMap (MapData) -> Load 'MapData' with STI and render
 createSelf (CharacterData) -> Create our local character and register movement controls for it
 createCharacter (CharacterData) -> Create a non-local character and store in table
-roundTimer (number) -> Set the current round time display to this number
 updatePosition ({id = CharacterId, position = (x,y)}) -> Set the position of character with id to position
+setHasFish ({id = CharacterId, hasFish = boolean}) -> Set whether the character of id has fish
 destroyCharacter (id) -> Destroy the character instance for the character of id
+roundTimer (number) -> Set the current round time display to this number
 roundEnded () -> Clean up all round related game objects
 createMessage (username, message) -> Create a message for the username in the chat
 
