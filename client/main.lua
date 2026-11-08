@@ -19,8 +19,8 @@ function love.update(dt)
 end
 
 function love.draw()
-	FlexLove.draw()
 	WorldController.draw()
+	FlexLove.draw()
 end
 
 function love.quit()
