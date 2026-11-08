@@ -1,9 +1,9 @@
 local sock = require("shared.libs.sock")
 local ScreenController = require("controllers.ScreenController")
-local CharacterController = require("controllers.CharacterController")
 local WorldController = require("controllers.WorldController")
 
 local GameController = {}
+local currentCharacterController = nil
 
 function GameController.selectName(Name)
 	print("selectName: " .. Name)
@@ -14,6 +14,8 @@ function GameController.selectName(Name)
 end
 
 function GameController.start()
+	local RoundTimer = ScreenController.createComponent("RoundTimer")
+
 	-- Establish client/server connection
 	Client = sock.newClient("localhost", 22122)
 
@@ -33,13 +35,25 @@ function GameController.start()
 		WorldController.addCharacter(CharacterData)
 	end)
 
-	Client:on("roundTimer", function(RoundTime) end)
+	Client:on("roundTimer", function(RoundTime)
+		RoundTimer:SetTime(RoundTime)
+	end)
 
-	Client:on("updatePosition", function(CharacterId, Position) end)
+	Client:on("updatePosition", function(data)
+		WorldController.updateCharacterPosition(data.id, data.position)
+	end)
 
-	Client:on("destroyCharacter", function(CharacterId) end)
+	Client:on("setHasFish", function(CharacterId)
+		WorldController.setHasFish(CharacterId)
+	end)
 
-	Client:on("roundEnded", function() end)
+	Client:on("destroyCharacter", function(CharacterId)
+		WorldController.destroyCharacter(CharacterId)
+	end)
+
+	Client:on("roundEnded", function()
+		WorldController.roundEnded()
+	end)
 
 	Client:connect()
 
@@ -47,6 +61,9 @@ function GameController.start()
 end
 
 function GameController.update(dt)
+	if WorldController.currentCharacterController then
+		Client:send("updatePosition", WorldController.currentCharacterController.CharacterData.position)
+	end
 	if Client then
 		Client:update()
 	end
