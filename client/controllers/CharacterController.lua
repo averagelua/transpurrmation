@@ -65,10 +65,6 @@ function CharacterController:Update(dt)
 
 	self.CharacterData.position.x = self.body:getX()
 	self.CharacterData.position.y = self.body:getY()
-
-	if self.CharacterData.position.y > love.graphics.getHeight() then
-		print("Fell out of world...")
-	end
 end
 
 function CharacterController:Destroy()
