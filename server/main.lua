@@ -78,6 +78,7 @@ local tableutil = require("shared.libs.tableutil")
 
 local MAPS_DIRECTORY = "maps"
 local ROUND_LENGTH = 120 -- 2 minutes
+local INTERACT_DISTANCE = 3 -- Minimum distance to be considered "touching" (mainly for goal and spawn)
 
 local RoundTime = 0
 local LastReplicatedRoundTime = nil
@@ -94,12 +95,15 @@ local function SendMaptoClient(Client)
 	Client:send("loadMap", CurrentMapData)
 end
 
-local function DestroyCharacter(Client)
+local function DestroyCharacter(Client, SkipSendToTarget)
 	if ClientCharacterData[Client] then
-		Server:sendToAllBut(Client, "destroyCharacter", ClientCharacterData[Client].id)
+		if SkipSendToTarget then
+			Server:sendToAllBut(Client, "destroyCharacter", ClientCharacterData[Client].id)
+		else
+			Server:sendToAll("destroyCharacter", ClientCharacterData[Client].id)
+		end
 		ClientCharacterData[Client] = nil
 	end
-	ClientCharacterNames[Client] = nil
 end
 
 local function EndRound()
@@ -122,6 +126,26 @@ local function EndRound()
 	ShamanObjects = {}
 end
 
+local function CalculateDistance(Position1, Position2)
+	return math.sqrt((Position2.x - Position1.x) ^ 2 + (Position2.y - Position1.y) ^ 2)
+end
+
+local function GrantFish(Client)
+	if ClientCharacterData[Client] then
+		ClientCharacterData[Client].hasFish = true
+		Server:sendToAll("setHasFish", ClientCharacterData[Client].id)
+	end
+end
+
+local function CompleteLevel(Client)
+	-- TODO: add reward or message for completing level?
+	DestroyCharacter(Client)
+end
+
+local function CanCompleteLevel(Client)
+	return ClientCharacterData[Client] and ClientCharacterData[Client].hasFish
+end
+
 local function UpdatePosition(Client, Position)
 	if
 		ClientCharacterData[Client] == nil
@@ -133,8 +157,24 @@ local function UpdatePosition(Client, Position)
 	end
 
 	-- TODO: Add check here for when the character falls out of bounds and destroy their character
+	if CurrentMapData and Position.y >= CurrentMapData.height * CurrentMapData.tileheight then
+		DestroyCharacter(Client)
+		return
+	end
+
 	-- TODO: Add check here for when the character gets near the goal to grant them fish
+	if CurrentGoalLocation and CalculateDistance(Position, CurrentGoalLocation) <= INTERACT_DISTANCE then
+		GrantFish(Client)
+	end
+
 	-- TODO: Add check here for when the character gets near the spawn to complete the level
+	if
+		CurrentSpawnLocation
+		and CanCompleteLevel(Client)
+		and CalculateDistance(Position, CurrentSpawnLocation) <= INTERACT_DISTANCE
+	then
+		CompleteLevel(Client)
+	end
 
 	local NewPosition = { x = Position.x, y = Position.y }
 	ClientCharacterData[Client].position = NewPosition
@@ -156,15 +196,15 @@ local function SendMessage(Client, Message)
 		return
 	end
 
-	local Username = ClientCharacterNames[Client]
-	if Username == nil then
+	local CharacterData = ClientCharacterData[Client]
+	if CharacterData == nil then
 		return
 	end
 
 	-- TODO: filter 'Message' content
 
 	Server:sendToAll("createMessage", {
-		username = Username,
+		id = CharacterData.id,
 		content = Message,
 	})
 end
@@ -184,7 +224,7 @@ function love.load()
 
 	Server:on("disconnect", function(data, client)
 		print(client, "disconnected")
-		DestroyCharacter(client)
+		DestroyCharacter(client, true)
 	end)
 
 	Server:on("updatePosition", function(data, client)
