@@ -47,6 +47,9 @@ function SelectName.new()
 	})
 
 	function SubmitName()
+		if #NameInput.text == 0 then
+			return
+		end
 		GameController.selectName(NameInput.text)
 	end
 
