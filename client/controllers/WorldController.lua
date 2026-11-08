@@ -2,15 +2,26 @@ local sti = require("shared.libs.sti.init")
 local CharacterController = require("controllers.CharacterController")
 
 local WorldController = {}
+WorldController.currentCharacterController = nil
 
 local currentMap = nil
 local currentWorld = nil
-local currentCharacterController = nil
 
 function WorldController.destroyMap()
 	if currentMap then
-		currentMap:destroy()
+		-- currentMap:destroy()
 		currentMap = nil
+	end
+	if currentWorld then
+		-- currentWorld:destroy()
+		currentWorld = nil
+	end
+end
+
+function WorldController.destroySelfCharacter()
+	if WorldController.currentCharacterController then
+		WorldController.currentCharacterController:Destroy()
+		WorldController.currentCharacterController = nil
 	end
 end
 
@@ -26,7 +37,7 @@ function WorldController.addCharacter(CharacterData, IsSelf)
 	}
 
 	if IsSelf then
-		currentCharacterController = CharacterController.new(CharacterData, currentWorld)
+		WorldController.currentCharacterController = CharacterController.new(CharacterData, currentWorld)
 	end
 end
 
@@ -51,13 +62,48 @@ function WorldController.loadMap(map)
 			local x = math.floor(sprite.CharacterData.position.x) - sprite.CharacterData.image:getWidth() / 2
 			local y = math.floor(sprite.CharacterData.position.y) - sprite.CharacterData.image:getHeight() * 2
 			local r = sprite.r
+
+			if sprite.CharacterData.hasFish then
+				-- TODO: draw fish if character has
+			end
+
 			love.graphics.draw(sprite.CharacterData.image, x, y, r, 3, 3) -- draw sprite image
 			love.graphics.print({ { 0, 0, 0 }, sprite.CharacterData.name }, x, y - 25) -- draw character name
 		end
 	end
 end
 
-function WorldController.updateCharacterPosition(characterId, newPosition) end
+function WorldController.destroyCharacter(characterId)
+	if not currentMap then
+		return
+	end
+	if
+		WorldController.currentCharacterController
+		and characterId == WorldController.currentCharacterController.CharacterData.id
+	then
+		WorldController.destroySelfCharacter()
+	end
+	currentMap.layers["Sprite Layer"].sprites[characterId] = nil
+end
+
+function WorldController.setHasFish(characterId)
+	if not currentMap then
+		return
+	end
+	currentMap.layers["Sprite Layer"].sprites[characterId].CharacterData.hasFish = true
+end
+
+function WorldController.updateCharacterPosition(characterId, newPosition)
+	if not currentMap then
+		return
+	end
+	currentMap.layers["Sprite Layer"].sprites[characterId].CharacterData.position = newPosition
+end
+
+function WorldController.roundEnded()
+	WorldController.destroySelfCharacter()
+	WorldController.destroyMap()
+end
 
 function WorldController.update(dt)
 	if currentMap then
@@ -66,8 +112,8 @@ function WorldController.update(dt)
 	if currentWorld then
 		currentWorld:update(dt)
 	end
-	if currentCharacterController then
-		currentCharacterController:Update(dt)
+	if WorldController.currentCharacterController then
+		WorldController.currentCharacterController:Update(dt)
 	end
 end
 
